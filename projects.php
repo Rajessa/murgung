@@ -1,12 +1,20 @@
 <?php 
 include 'header.php';
-include 'admin/koneksi.php';
+include 'js/koneksi.php';
 
-$projects = mysqli_query($conn, "SELECT * FROM t_data ORDER BY tanggal_dimulai_proyek DESC");
+// Ambil status dari parameter URL
+$status = isset($_GET['status']) ? $_GET['status'] : 'Semua';
+
+// Query data proyek
+if ($status == 'Semua') {
+    $projects = mysqli_query($con, "SELECT * FROM t_data ORDER BY tanggal_dimulai_proyek DESC");
+} else {
+    $projects = mysqli_query($con, "SELECT * FROM t_data WHERE status_proyek='$status' ORDER BY tanggal_dimulai_proyek DESC");
+}
 ?>
 
 <style>
-  .project-section {
+   .project-section {
     padding: 50px 0;
   }
 
@@ -81,6 +89,27 @@ $projects = mysqli_query($conn, "SELECT * FROM t_data ORDER BY tanggal_dimulai_p
   -webkit-box-orient: vertical;
 }
 
+.filter-btn {
+  font-family: "Acme", sans-serif;
+  font-size: 16px; /* sesuaikan ukuran jika perlu */
+  font-weight: 400;
+  color: white !important;
+  background-color: #6F826A !important;
+}
+
+.status-filter-info {
+  background-color: #f0f8e0;
+  color: #4a6c45;
+  padding: 12px 20px;
+  border: 2px solid #4a6c45;
+  border-radius: 8px;
+  display: inline-block;
+  font-weight: bold;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+
 
 </style>
 
@@ -98,36 +127,49 @@ $projects = mysqli_query($conn, "SELECT * FROM t_data ORDER BY tanggal_dimulai_p
 
   <section class="project-section">
     <div class="container">
-      <!-- Filter Buttons -->
+      <!-- Info Filter Aktif -->
+      <?php if ($status != 'Semua') : ?>
+  <div class="center">
+    <p class="status-filter-info">
+      Menampilkan Proyek <?= $status; ?>
+    </p>
+  </div>
+<?php endif; ?>
+
+
+      <!-- Filter Kategori -->
       <div class="center">
-        <button class="btn filter-btn" data-filter="all">Semua</button>
-        <button class="btn filter-btn" data-filter="bandara">Bandara</button>
+        <button class="btn filter-btn" data-filter="all">Semua Kategori</button>
+        <button class="btn filter-btn" data-filter="rumah">Rumah</button>
         <button class="btn filter-btn" data-filter="gedung">Gedung</button>
         <button class="btn filter-btn" data-filter="jalan">Jalan</button>
-        <button class="btn filter-btn" data-filter="jembatan">Jembatan</button>
+        <button class="btn filter-btn" data-filter="lainnya">Lainnya</button>
       </div>
 
-      <!-- Card Dinamis dari DB -->
+      <!-- Tampilkan Proyek -->
       <div class="row">
         <?php while ($row = mysqli_fetch_assoc($projects)) : ?>
-        <div class="col s12 m4 project-item <?= strtolower($row['kategori']); ?>">
-          <div class="card fixed-height">
-            <div class="card-image">
-              <a href="project_detail.php?id=<?= $row['id']; ?>">
-                <img src="admin/img/project/<?= $row['image']; ?>" alt="<?= $row['nama_klien']; ?>">
-              </a>
-            </div>
-            <div class="card-content">
-              <a href="project_detail.php?id=<?= $row['id']; ?>">
-                <span class="project-title"><?= $row['nama_proyek']; ?></span>
-              </a>
-              <p class="project-description">Kategori: <?= ucfirst($row['kategori']); ?></p>
-            </div>
-            <div class="card-action">
-              <a href="project_detail.php?id=<?= $row['id']; ?>">Selengkapnya »</a>
+          <div class="col s12 m4 project-item <?= strtolower($row['kategori']); ?>">
+            <div class="card fixed-height">
+              <div class="card-image">
+                <a href="project_detail.php?id=<?= $row['id']; ?>">
+                  <img src="admin/img/project/<?= $row['image']; ?>" alt="<?= $row['pemberi_kerja']; ?>">
+                </a>
+              </div>
+              <div class="card-content">
+                <a href="project_detail.php?id=<?= $row['id']; ?>">
+                  <span class="project-title"><?= $row['nama_proyek']; ?></span>
+                </a>
+                <p class="project-description">
+                  Kategori: <?= ucfirst($row['kategori']); ?><br>
+                  Status: <?= $row['status_proyek']; ?>
+                </p>
+              </div>
+              <div class="card-action">
+                <a href="project_detail.php?id=<?= $row['id']; ?>">Selengkapnya »</a>
+              </div>
             </div>
           </div>
-        </div>
         <?php endwhile; ?>
       </div>
     </div>
