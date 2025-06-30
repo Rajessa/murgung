@@ -4,6 +4,7 @@ include 'admin/koneksi.php';
 
 $id = $_GET['id'];
 $data = mysqli_fetch_assoc(mysqli_query($conn, "SELECT * FROM t_data WHERE id = '$id'"));
+
 $fotos = [];
 $foto_lain = mysqli_query($conn, "SELECT * FROM project_images WHERE project_id = '$id'");
 while ($img = mysqli_fetch_assoc($foto_lain)) {
@@ -72,41 +73,29 @@ while ($img = mysqli_fetch_assoc($foto_lain)) {
   <img src="admin/img/project/<?= $data['image']; ?>" class="main-img materialboxed">
 
   <!-- Slider Foto Lain -->
-  <?php if (mysqli_num_rows($foto_lain) > 0): ?>
+  <?php if (count($fotos) > 0): ?>
   <div class="swiper mySwiper">
     <div class="swiper-wrapper">
       <?php foreach ($fotos as $img): ?>
-  <div class="swiper-slide">
-    <img src="admin/img/project/<?= $img; ?>" class="img-fluid materialboxed" alt="Foto Tambahan">
-  </div>
-<?php endforeach; ?>
-
+      <div class="swiper-slide">
+        <img src="admin/img/project/<?= $img; ?>" class="img-fluid materialboxed" alt="Foto Tambahan">
+      </div>
+      <?php endforeach; ?>
     </div>
-    <!-- Tambahkan navigasi jika diperlukan -->
     <div class="swiper-button-next"></div>
     <div class="swiper-button-prev"></div>
     <div class="swiper-pagination"></div>
   </div>
-<?php else: ?>
+  <?php else: ?>
   <p class="text-muted">Tidak ada foto tambahan.</p>
-<?php endif; ?>
-
-
+  <?php endif; ?>
 
   <!-- Tabel Deskripsi -->
   <table class="highlight project-table">
     <tbody>
       <tr>
-        <td><strong>Nama Klien</strong></td>
-        <td><?= $data['nama_klien']; ?></td>
-      </tr>
-      <tr>
-        <td><strong>Perusahaan</strong></td>
-        <td><?= $data['nama_perusahaan']; ?></td>
-      </tr>
-      <tr>
-        <td><strong>Kategori</strong></td>
-        <td><?= $data['kategori']; ?></td>
+        <td><strong>Pemberi Kerja</strong></td>
+        <td><?= $data['pemberi_kerja']; ?></td>
       </tr>
       <tr>
         <td><strong>Tanggal Mulai</strong></td>
@@ -117,7 +106,15 @@ while ($img = mysqli_fetch_assoc($foto_lain)) {
         <td><?= date('d M Y', strtotime($data['tanggal_selesai_proyek'])); ?></td>
       </tr>
       <tr>
-        <td><strong>Deskripsi</strong></td>
+        <td><strong>Status Proyek</strong></td>
+        <td><?= $data['status_proyek']; ?></td>
+      </tr>
+      <tr>
+        <td><strong>Nilai Kontrak</strong></td>
+        <td>Rp <?= number_format($data['nilai_kontrak'], 0, ',', '.'); ?></td>
+      </tr>
+      <tr>
+        <td><strong>Nama Pekerjaan</strong></td>
         <td><?= nl2br($data['deskripsi']); ?></td>
       </tr>
     </tbody>
@@ -128,70 +125,55 @@ while ($img = mysqli_fetch_assoc($foto_lain)) {
   </div>
 </div>
 
-<!-- JS Slider Materialize -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
- <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+<!-- JS Swiper dan Materialbox -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     var elems = document.querySelectorAll('.materialboxed');
     M.Materialbox.init(elems);
 
-    var carousels = document.querySelectorAll('.carousel');
-    M.Carousel.init(carousels, {
-      dist: 0,
-      shift: 10,
-      padding: 10,
-      indicators: true,
-      numVisible: 5
+    var swiper = new Swiper('.mySwiper', {
+      loop: true,
+      spaceBetween: 20,
+      slidesPerView: 1,
+      pagination: {
+        el: '.swiper-pagination',
+        clickable: true,
+      },
+      navigation: {
+        nextEl: '.swiper-button-next',
+        prevEl: '.swiper-button-prev',
+      },
+      effect: 'fade',
+      fadeEffect: {
+        crossFade: true
+      },
+      autoplay: {
+        delay: 3000,
+        disableOnInteraction: false,
+      },
+    });
+
+    // Pause autoplay saat zoom gambar
+    elems.forEach(function (el) {
+      el.addEventListener('click', function () {
+        swiper.autoplay.stop();
+      });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        swiper.autoplay.start();
+      }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (document.querySelector('.materialbox-overlay') && !e.target.classList.contains('materialboxed')) {
+        swiper.autoplay.start();
+      }
     });
   });
-
-  document.addEventListener('DOMContentLoaded', function () {
-  var swiper = new Swiper('.mySwiper', {
-    loop: true,
-    spaceBetween: 20,
-    slidesPerView: 1,
-    pagination: {
-      el: '.swiper-pagination',
-      clickable: true,
-    },
-    navigation: {
-      nextEl: '.swiper-button-next',
-      prevEl: '.swiper-button-prev',
-    },
-    effect: 'fade',
-    fadeEffect: {
-      crossFade: true
-    },
-    autoplay: {
-      delay: 3000,
-      disableOnInteraction: false,
-    },
-  });
-
-  // Init Materialbox
-  var elems = document.querySelectorAll('.materialboxed');
-  var instances = M.Materialbox.init(elems);
-
-  // Pause autoplay saat gambar di-zoom
-  elems.forEach(function (el) {
-    el.addEventListener('click', function () {
-      swiper.autoplay.stop(); // stop saat user klik gambar
-    });
-  });
-
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-      swiper.autoplay.start(); // lanjut autoplay saat user tekan esc
-    }
-  });
-
-  document.addEventListener('click', function (e) {
-    // Deteksi klik di luar materialbox (untuk tutup gambar)
-    if (document.querySelector('.materialbox-overlay') && !e.target.classList.contains('materialboxed')) {
-      swiper.autoplay.start();
-    }
-  });
-});
-
 </script>
+
+<?php include 'footer.php'; ?>
