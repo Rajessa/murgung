@@ -11,55 +11,63 @@ if (!isset($_SESSION['admin_id'])) {
 
 if (isset($_POST['tambah'])) {
   $nama_proyek = $_POST['nama_proyek'];
-  $nama_klien = $_POST['nama_klien'];
-  $nama_perusahaan = $_POST['nama_perusahaan'];
+  $pemberi_kerja = $_POST['pemberi_kerja'];
   $deskripsi = $_POST['deskripsi'];
   $tgl_mulai = $_POST['tanggal_mulai'];
   $tgl_selesai = $_POST['tanggal_selesai'];
   $kategori = $_POST['kategori'];
+  $nilai_kontrak = $_POST['nilai_kontrak'];
 
-    // Upload gambar utama
-    $namaFile = $_FILES['image']['name'];
-    $tmp = $_FILES['image']['tmp_name'];
-    $lokasiUpload = 'img/project/';
-    $namaUtama = uniqid() . '-' . $namaFile;
-    
-    if (move_uploaded_file($tmp, $lokasiUpload . $namaUtama)) {
-        echo "Upload utama berhasil: $namaUtama<br>";
-    } else {
-        echo "Upload GAGAL!";
-        exit;
-    }    
+  // Cek status proyek otomatis
+  $tanggal_sekarang = date('Y-m-d');
+  if ($tgl_selesai < $tanggal_sekarang) {
+      $status_proyek = 'Selesai';
+  } else {
+      $status_proyek = 'On Going';
+  }
 
-    // Simpan ke t_data
-    $query = mysqli_query($conn, "INSERT INTO t_data 
-      (image, nama_proyek, nama_klien, nama_perusahaan, deskripsi, tanggal_dimulai_proyek, tanggal_selesai_proyek, kategori) 
-      VALUES 
-      ('$namaUtama', '$nama_proyek', '$nama_klien', '$nama_perusahaan', '$deskripsi', '$tgl_mulai', '$tgl_selesai', '$kategori')");
+  // Upload gambar utama
+  $namaFile = $_FILES['image']['name'];
+  $tmp = $_FILES['image']['tmp_name'];
+  $lokasiUpload = 'img/project/';
+  $namaUtama = uniqid() . '-' . $namaFile;
+  
+  if (move_uploaded_file($tmp, $lokasiUpload . $namaUtama)) {
+      echo "Upload utama berhasil: $namaUtama<br>";
+  } else {
+      echo "Upload GAGAL!";
+      exit;
+  }
 
-    if ($query) {
-        $id_proyek = mysqli_insert_id($conn);
+  // Simpan ke t_data
+  $query = mysqli_query($conn, "INSERT INTO t_data 
+  (image, nama_proyek, pemberi_kerja, deskripsi, tanggal_dimulai_proyek, tanggal_selesai_proyek, kategori, nilai_kontrak, status_proyek) 
+  VALUES 
+  ('$namaUtama', '$nama_proyek', '$pemberi_kerja', '$deskripsi', '$tgl_mulai', '$tgl_selesai', '$kategori', '$nilai_kontrak', '$status_proyek')");
 
-        // Upload banyak gambar tambahan
-        foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
-            $namaGambar = $_FILES['images']['name'][$key];
-            $namaBaru = uniqid() . '-' . $namaGambar;
-            $uploadPath = $lokasiUpload . $namaBaru;
+  if ($query) {
+      $id_proyek = mysqli_insert_id($conn);
 
-            if (move_uploaded_file($tmpName, $lokasiUpload . $namaBaru)){
+      // Upload banyak gambar tambahan
+      foreach ($_FILES['images']['tmp_name'] as $key => $tmpName) {
+          $namaGambar = $_FILES['images']['name'][$key];
+          $namaBaru = uniqid() . '-' . $namaGambar;
+          $uploadPath = $lokasiUpload . $namaBaru;
+
+          if (move_uploaded_file($tmpName, $uploadPath)) {
               echo "Upload tambahan berhasil: $namaBaru<br>";
               mysqli_query($conn, "INSERT INTO project_images (project_id, image) VALUES ('$id_proyek', '$namaBaru')");
-            } else {
+          } else {
               echo "GAGAL upload gambar tambahan: $namaGambar<br>";
-            }
-        }
+          }
+      }
 
-        // Simpan log aktivitas
-        mysqli_query($conn, "INSERT INTO log_aktivitas (admin_id, aktivitas) 
-                             VALUES ('{$_SESSION['admin_id']}', 'Tambah proyek: $nama_klien')");
-        header("Location: dashboard.php");
-        exit;
-    }
+      // Simpan log aktivitas
+      mysqli_query($conn, "INSERT INTO log_aktivitas (admin_id, aktivitas) 
+                           VALUES ('{$_SESSION['admin_id']}', 'Tambah proyek: $nama_proyek dengan status $status_proyek')");
+      header("Location: index.php");
+      exit;
+  }
 }
 ?>
 
@@ -78,7 +86,7 @@ if (isset($_POST['tambah'])) {
       <h4>Admin Panel</h4>
       <hr>
       <ul class="nav flex-column">
-        <li class="nav-item"><a href="dashboard.php" class="nav-link text-white">📂 Kelola Project</a></li>
+        <li class="nav-item"><a href="index.php" class="nav-link text-white">📂 Kelola Project</a></li>
         <li class="nav-item"><a href="log.php" class="nav-link text-white">🕒 Log Aktivitas</a></li>
         <li class="nav-item"><a href="logout.php" class="nav-link text-white">🚪 Logout</a></li>
       </ul>
@@ -88,16 +96,7 @@ if (isset($_POST['tambah'])) {
     <div class="col-md-10 p-4">
       <h3>Tambah Proyek</h3>
       <form method="post" enctype="multipart/form-data">
-        <div class="mb-3">
-          <label>Kategori</label>
-          <select name="kategori" class="form-select" required>
-            <option value="jalan">Jalan</option>
-            <option value="gedung">Gedung</option>
-            <option value="bandara">Bandara</option>
-            <option value="jembatan">Jembatan</option>
-          </select>
-        </div>
-
+        
         <div class="mb-3">
           <label>Gambar Utama</label>
           <input type="file" name="image" class="form-control" required>
@@ -108,24 +107,28 @@ if (isset($_POST['tambah'])) {
           <input type="file" name="images[]" class="form-control" multiple>
         </div>
 
-<div class="mb-3">
-  <label>Nama Proyek</label>
-  <input type="text" name="nama_proyek" class="form-control" required>
-</div>
-
-
         <div class="mb-3">
-          <label>Nama Klien</label>
-          <input type="text" name="nama_klien" class="form-control" required>
+          <label>Kategori</label>
+          <select name="kategori" class="form-select" required>
+            <option value="rumah">Rumah</option>
+            <option value="gedung">Gedung</option>
+            <option value="jalan">Jalan</option>
+            <option value="lainnya">Lainnya</option>
+          </select>
         </div>
 
         <div class="mb-3">
-          <label>Nama Perusahaan</label>
-          <input type="text" name="nama_perusahaan" class="form-control" required>
+          <label>Nama Proyek</label>
+          <input type="text" name="nama_proyek" class="form-control" required>
         </div>
 
         <div class="mb-3">
-          <label>Deskripsi</label>
+          <label>Pemberi Pekerjaan</label>
+          <input type="text" name="pemberi_kerja" class="form-control" required>
+        </div>
+
+        <div class="mb-3">
+          <label>Nama Pekerjaan</label>
           <textarea name="deskripsi" class="form-control"></textarea>
         </div>
 
@@ -139,8 +142,13 @@ if (isset($_POST['tambah'])) {
           <input type="date" name="tanggal_selesai" class="form-control" required>
         </div>
 
+        <div class="mb-3">
+          <label>Nilai Kontrak </label>
+          <input type="number" name="nilai_kontrak" class="form-control" required>
+        </div>
+
         <button type="submit" name="tambah" class="btn btn-success">Simpan</button>
-        <a href="dashboard.php" class="btn btn-secondary">Kembali</a>
+        <a href="index.php" class="btn btn-secondary">Kembali</a>
       </form>
     </div>
   </div>
